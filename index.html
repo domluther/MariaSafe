@@ -71,11 +71,13 @@
             align-items: center;
             justify-content: center;
             opacity: 0;
+            pointer-events: none;
             transition: opacity 0.5s ease 0.8s;
         }
 
         .safe.open .safe-interior {
             opacity: 1;
+            pointer-events: auto;
         }
 
         .safe-interior::before {
@@ -178,6 +180,7 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            pointer-events: auto;
         }
 
         .key:hover {
@@ -236,11 +239,38 @@
             transition: all 0.5s ease;
             z-index: 1000;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none; /* This is the key fix! */
         }
 
-        .success-message.show {
+        .hint-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 25px 35px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.3),
+                inset 0 2px 10px rgba(255,255,255,0.2);
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+            transition: all 0.5s ease;
+            z-index: 1001;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none;
+            max-width: 400px;
+            line-height: 1.4;
+        }
+
+        .hint-message.show {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
         }
 
         .background-pattern {
@@ -359,14 +389,23 @@
         <small style="font-size: 0.8em; margin-top: 10px; display: block;">Document all findings</small>
     </div>
 
+    <div class="hint-message" id="hintMessage">
+        🔍 <strong>HINT:</strong><br>
+        Remember the clue: <em>"Reverse wall pictures"</em><br><br>
+        🏠 Go back to the suspect's house and look at the wall decorations.<br>
+        What numbers do you see? Try reversing them!
+    </div>
+
     <script>
         const CORRECT_CODE = '43321';
         let currentCode = '';
         let isProcessing = false;
+        let attemptCount = 0;
 
         const ledDisplay = document.getElementById('ledDisplay');
         const safe = document.getElementById('safe');
         const successMessage = document.getElementById('successMessage');
+        const hintMessage = document.getElementById('hintMessage');
 
         function updateDisplay() {
             if (currentCode.length === 0) {
@@ -403,7 +442,6 @@
                     setTimeout(() => {
                         successMessage.classList.add('show');
                         
-                        // Hide success message after 3 seconds so they can see the safe interior
                         setTimeout(() => {
                             successMessage.classList.remove('show');
                         }, 3000);
@@ -411,6 +449,7 @@
                 }, 500);
                 
             } else {
+                attemptCount++;
                 ledDisplay.classList.add('error');
                 ledDisplay.textContent = 'ERROR';
                 
@@ -418,8 +457,19 @@
                     ledDisplay.classList.remove('error');
                     currentCode = '';
                     updateDisplay();
-                    ledDisplay.style.color = '#00ff00';
+                    ledDisplay.style.color = '#ff0000';
                     isProcessing = false;
+                    
+                    // Show hint after 5 failed attempts
+                    if (attemptCount >= 5) {
+                        setTimeout(() => {
+                            hintMessage.classList.add('show');
+                            
+                            setTimeout(() => {
+                                hintMessage.classList.remove('show');
+                            }, 6000); // Show hint for 6 seconds
+                        }, 500);
+                    }
                 }, 1500);
             }
         }
@@ -427,20 +477,21 @@
         // Initialize display
         updateDisplay();
 
-        // Simple event delegation
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('key')) {
+        // Add click event listeners to all keys
+        const keys = document.querySelectorAll('.key');
+        keys.forEach((key) => {
+            key.addEventListener('click', function(e) {
                 e.preventDefault();
                 
-                if (e.target.hasAttribute('data-digit')) {
-                    const digit = e.target.getAttribute('data-digit');
+                if (this.hasAttribute('data-digit')) {
+                    const digit = this.getAttribute('data-digit');
                     enterDigit(digit);
-                } else if (e.target.id === 'deleteBtn') {
+                } else if (this.id === 'deleteBtn') {
                     deleteDigit();
-                } else if (e.target.id === 'enterBtn') {
+                } else if (this.id === 'enterBtn') {
                     checkCode();
                 }
-            }
+            });
         });
 
         // Keyboard support
